@@ -15,7 +15,7 @@ class Node {
 }
 
 // returns node asscosiated with passed coordinate
-get_node = (coord) => {
+const get_node = (coord) => {
     for (let node of nodes) {
         if (node.x == coord[0] && node.y == coord[1]) {
             return node
@@ -24,14 +24,14 @@ get_node = (coord) => {
 }
 
 // h is a heuristic function that estimates the cost of the cheapest path from n to the goal
-h = (node, goal) => {
+const h = (node, goal) => {
     let delta_x = goal.x - node.x
     let delta_y = goal.y - node.y
     c = (delta_x ** 2 + delta_y ** 2) ** 0.5
     return c
 }
 
-d = (curr, target) => {
+const d = (curr, target) => {
     let delta_x = target.x - curr.x
     let delta_y = target.y - curr.y
     c = (delta_x ** 2 + delta_y ** 2) ** 0.5
@@ -39,7 +39,7 @@ d = (curr, target) => {
 }
 
 // returns adjacent nodes on grid
-get_neighbors = (node) => {
+const get_neighbors = (node) => {
     let neighbors = []
     let adjacent = [
         get_node([node.x, node.y + 1]),
@@ -56,7 +56,7 @@ get_neighbors = (node) => {
 }
 
 // For node n, n.previous is the node immediately preceding it on the cheapest path from start to n currently known
-reconstruct_path = (current) => {
+const reconstruct_path = (current) => {
     let total_path = [[current.x, current.y]]
     while (current.previous !== null) {
         total_path.unshift([current.previous.x, current.previous.y])
@@ -66,7 +66,7 @@ reconstruct_path = (current) => {
 }
 
 // A* algorithm that return a econstruction of the path
-A_Star = (start, goal, h) => {
+const A_Star = (start, goal, h) => {
     let searchNum = 0
 
     let startN = get_node(start)
@@ -132,7 +132,7 @@ A_Star = (start, goal, h) => {
 }
 
 // creates nodes as a grid
-createGrid = (width, height) => {
+const createGrid = (width, height) => {
     for (let i = 0; i <= width; i++) {
         for (let j = 0; j <= height; j++) {
             new Node(j, i)
@@ -141,7 +141,7 @@ createGrid = (width, height) => {
 }
 
 // creates square as a div element which is used to show a visual of the algorithm
-createSquare = () => {
+const createSquare = () => {
     let square = document.createElement("div");
     square.classList.add('square')
     square.innerHTML = '&nbsp;'
@@ -159,7 +159,7 @@ createSquare = () => {
 }
 
 // creates the square used as the start node
-createStart = (square) => {
+const createStart = (square) => {
     let startSquare = document.getElementById('startSquare')
     if (startSquare != null) {
         startSquare.className = 'square'
@@ -172,7 +172,7 @@ createStart = (square) => {
 }
 
 // creates the square used as the end node
-createEnd = (square) => {
+const createEnd = (square) => {
     let goalSquare = document.getElementById('goalSquare')
     if (goalSquare != null) {
         goalSquare.className = 'square'
@@ -185,7 +185,7 @@ createEnd = (square) => {
 }
 
 // decides what to change a square to eg. wall square to start square
-changeSquare = (square) => {
+const changeSquare = (square) => {
     if (sDown) {
         createStart(square)
     } else if (eDown) {
@@ -198,7 +198,7 @@ changeSquare = (square) => {
 }
 
 // creates nodes then returns path
-run = (start, goal, closedCoords, width, height) => {
+const run = (start, goal, closedCoords, width, height) => {
     createGrid(height, width)
     for (let i = 0; i < closedCoords.length; i++) {
         let coord = closedCoords[i]
@@ -210,7 +210,7 @@ run = (start, goal, closedCoords, width, height) => {
     return path
 }
 
-loadCols = (width) => {
+const loadCols = (width) => {
     let columnContainer = document.getElementById('columns')
     for (let i = 0; i < width; i++) {
         let col = document.createElement('div')
@@ -219,7 +219,7 @@ loadCols = (width) => {
         columnContainer.appendChild(col)
     }
 }
-loadrows = (height) => {
+const loadrows = (height) => {
     let rowContainer = document.getElementById('rows')
     for (let i = 0; i < height; i++) {
         let row = document.createElement('div')
@@ -229,7 +229,7 @@ loadrows = (height) => {
     }
 }
 
-reset = () => {
+const reset = () => {
     let Squares = document.querySelectorAll('#square')
     for (let square of Squares) {
         square.className = 'square'
@@ -250,13 +250,32 @@ reset = () => {
     endInput.setAttribute('value', '')
 }
 
+
+const drawPath = (path) => {
+    let squares = document.querySelectorAll('#square')
+    let activeNum = 0
+    for (let i = 0; i < path.length; i++) {
+        for (let square of squares) {
+            if (square.getAttribute('x') == path[i][0] && square.getAttribute('y') == path[i][1]) {
+                if (!(square.classList.contains('start')) && !(square.classList.contains('goal'))) {
+                    setTimeout(() => {
+                        square.classList.remove('search')
+                        square.classList.add('active')
+                    }, activeNum * 10)
+                    activeNum++
+                }
+            }
+        }
+    }
+}
+
 // handles creating and plotting path and algorithm visualisation
-main = () => {
+const main = () => {
     let startSquare = document.getElementById('startSquare')
     let goalSquare = document.getElementById('goalSquare')
     let startCoord = [startSquare.getAttribute('x'), startSquare.getAttribute('y')]
     let endCoord = [goalSquare.getAttribute('x'), goalSquare.getAttribute('y')]
-    let squares = document.querySelectorAll('#square')
+    // let squares = document.querySelectorAll('#square')
     let walls = document.querySelectorAll('.square.wall')
     let closedCoords = []
     for (let wall of walls) {
@@ -264,37 +283,21 @@ main = () => {
         closedCoords.push(coord)
     }
     let Path = run(startCoord, endCoord, closedCoords, WIDTH, HEIGHT)
-    searchNum = Path.searchNum
-    path = Path.path
-    console.log(path)
-    if (path != null) {
-        let drawPath = setInterval(() => {
+    if (Path != null) {
+        path = Path.path
+        searchNum = Path.searchNum
+        let plot = setInterval(() => {
             let searchSquares = document.querySelectorAll('.square.search')
             if (searchSquares.length == searchNum) {
-                let activeNum = 0
-                for (let i = 0; i < path.length; i++) {
-                    for (let square of squares) {
-                        if (square.getAttribute('x') == path[i][0] && square.getAttribute('y') == path[i][1]) {
-                            if (!(square.classList.contains('start')) && !(square.classList.contains('goal'))) {
-                                setTimeout(() => {
-                                    square.classList.remove('search')
-                                    square.classList.add('active')
-                                }, activeNum * 10)
-                                activeNum++
-                            }
-                        }
-                    }
-                    clearInterval(drawPath)
-                    // resets for replayabilty
-                    searchNum = 0
-                }
+                drawPath(path)
+                clearInterval(plot)
             }
         }, 50)
     }
 }
 
 // self explanatory
-loadPage = (width, height) => {
+const loadPage = (width, height) => {
     loadCols(width)
     loadrows(height)
     for (let i = 0; i < height; i++) {
@@ -310,14 +313,13 @@ loadPage = (width, height) => {
     })
     let resetBtn = document.getElementById('reset')
     resetBtn.addEventListener('click', () => {
-        // location.reload()
         reset()
     })
 
 }
 
 // checks wheather a coordinate is entered then plots it
-checkInputs = setInterval(() => {
+const checkInputs = setInterval(() => {
     let startCoord = document.getElementById('start').value.split(',')
     let endCoord = document.getElementById('end').value.split(',')
     let squares = document.getElementsByClassName('square')
