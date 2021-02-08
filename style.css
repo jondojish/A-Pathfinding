@@ -43,9 +43,13 @@ body {
 }
 .square.active {
 	background-color: #10efff;
+	/* transition-delay: 1s; */
+	/* transition-property: background-color; */
+
 }
 .square.search {
 	background-color: #fffb13;
+	/* transition-property: background-color; */
 }
 
 

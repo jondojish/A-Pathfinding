@@ -14,30 +14,31 @@ class Node {
     }
 }
 
-sleep = (ms) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
+// returns node asscosiated with passed coordinate
 get_node = (coord) => {
-    for (let i = 0; i < nodes.length; i++) {
-        let n = nodes[i]
-        if (n.x == coord[0] && n.y == coord[1]) {
-            return n
+    for (let node of nodes) {
+        if (node.x == coord[0] && node.y == coord[1]) {
+            return node
         }
     }
 }
 
+// h is a heuristic function that estimates the cost of the cheapest path from n to the goal
 h = (node, goal) => {
     let delta_x = goal.x - node.x
     let delta_y = goal.y - node.y
-    c = (delta_x ** 2 + delta_x ** 2) ** 0.5
+    c = (delta_x ** 2 + delta_y ** 2) ** 0.5
     return c
 }
 
 d = (curr, target) => {
-    return 1
+    let delta_x = target.x - curr.x
+    let delta_y = target.y - curr.y
+    c = (delta_x ** 2 + delta_y ** 2) ** 0.5
+    return c
 }
 
+// returns adjacent nodes on grid
 get_neighbors = (node) => {
     let neighbors = []
     let adjacent = [
@@ -46,17 +47,15 @@ get_neighbors = (node) => {
         get_node([node.x + 1, node.y]),
         get_node([node.x - 1, node.y]),
     ]
-    for (let i = 0; i < adjacent.length; i++) {
-        let n = adjacent[i]
+    for (let n of adjacent) {
         if (typeof (n) != 'undefined' && !n.closed) {
             neighbors.push(n)
         }
     }
-
     return neighbors
 }
 
-// For node n, n.previous is the node immediately preceding it on the cheapest path from start to n currently known.
+// For node n, n.previous is the node immediately preceding it on the cheapest path from start to n currently known
 reconstruct_path = (current) => {
     let total_path = [[current.x, current.y]]
     while (current.previous !== null) {
@@ -66,7 +65,9 @@ reconstruct_path = (current) => {
     return total_path
 }
 
+// aids in animation
 let searchNum = 0
+// A* algorithm that return a econstruction of the path
 A_Star = (start, goal, h) => {
 
     start = get_node(start)
@@ -80,8 +81,8 @@ A_Star = (start, goal, h) => {
 
     // For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
     // how short a path from start to finish can be if it goes through n.
-    start.fScore = h(start, goal)
 
+    start.fScore = h(start, goal)
     while (openSet.length != 0) {
         // This operation can occur in O(1) time if openSet is a min-heap or a priority queue
         // current = the node in openSet having the lowest fScore[] value
@@ -104,20 +105,17 @@ A_Star = (start, goal, h) => {
             tentative_gScore = current.gScore + d(current, neighbor)
             if (tentative_gScore < neighbor.gScore) {
                 // This path to neighbor is better than any previous one. Record it!
-                // neighbor.previous = current
-
-                /// added
+                // plots visualiser
                 let squares = document.getElementsByClassName('square')
                 for (let square of squares) {
                     if (square.getAttribute('x') == neighbor.x && square.getAttribute('y') == neighbor.y && square.id == 'square') {
-                        // square.className += ' search'
+                        // adds a nice animation via delaying the class change
                         setTimeout(() => {
-                            square.className += ' search'
+                            square.classList.add('search')
                         }, searchNum * 5)
                         searchNum++
                     }
                 }
-                /// added
                 neighbor.previous = current
                 neighbor.gScore = tentative_gScore
                 neighbor.fScore = neighbor.gScore + h(neighbor, goal)
@@ -131,7 +129,7 @@ A_Star = (start, goal, h) => {
     return "failure"
 }
 
-
+// creates nodes as a grid
 createGrid = (width, height) => {
     for (let i = 0; i <= width; i++) {
         for (let j = 0; j <= height; j++) {
@@ -140,34 +138,70 @@ createGrid = (width, height) => {
     }
 }
 
+// creates square as a div element which is used to show a visual of the algorithm
 createSquare = () => {
     let square = document.createElement("div");
-    square.className = 'square'
+    square.classList.add('square')
     square.innerHTML = '&nbsp;'
     square.id = 'square'
     square.addEventListener('click', () => {
-        createWall(square)
+        changeSquare(square)
+    })
+    square.addEventListener('mouseover', () => {
+        if (mouseHeld) {
+            changeSquare(square)
+        }
     })
     document.getElementById('grid').appendChild(square);
     return square;
 }
 
-createWall = (square) => {
-    if (square.className.includes('wall')) {
-        square.className = square.className.replace(' wall', '')
-    } else {
-        square.className += ' wall'
+// creates the square used as the start node
+createStart = (square) => {
+    let startSquare = document.getElementById('startSquare')
+    if (startSquare != null) {
+        startSquare.className = 'square'
+        startSquare.id = 'square'
     }
-
+    let startCoord = document.getElementById('start')
+    startCoord.setAttribute('value', `${square.getAttribute('x')},${square.getAttribute('y')}`)
+    square.classList.add('start')
+    square.id = 'startSquare'
 }
+
+// creates the square used as the end node
+createEnd = (square) => {
+    let goalSquare = document.getElementById('goalSquare')
+    if (goalSquare != null) {
+        goalSquare.className = 'square'
+        goalSquare.id = 'square'
+    }
+    let endCoord = document.getElementById('end')
+    endCoord.setAttribute('value', `${square.getAttribute('x')},${square.getAttribute('y')}`)
+    square.classList.add('goal')
+    square.id = 'goalSquare'
+}
+
+// decides what to change a square to eg. wall square to start square
+changeSquare = (square) => {
+    if (sDown) {
+        createStart(square)
+    } else if (eDown) {
+        createEnd(square)
+    } else if (square.classList.contains('wall')) {
+        square.classList.remove('wall')
+    } else {
+        square.classList.add('wall')
+    }
+}
+
+// creates nodes then returns path
 run = (start, goal, closedCoords, width, height) => {
     createGrid(height, width)
-
     for (let i = 0; i < closedCoords.length; i++) {
         let coord = closedCoords[i]
         get_node(coord).closed = true
     }
-
     let path = A_Star(start, goal, h)
     return path
 }
@@ -176,7 +210,7 @@ loadCols = (width) => {
     let columnContainer = document.getElementById('columns')
     for (let i = 0; i < width; i++) {
         let col = document.createElement('div')
-        col.className = 'rowCol'
+        col.classList.add('rowCol')
         col.innerHTML = i
         columnContainer.appendChild(col)
     }
@@ -185,7 +219,7 @@ loadrows = (height) => {
     let rowContainer = document.getElementById('rows')
     for (let i = 0; i < height; i++) {
         let row = document.createElement('div')
-        row.className = 'rowCol'
+        row.classList.add('rowCol')
         row.innerHTML = i
         rowContainer.appendChild(row)
     }
@@ -204,37 +238,41 @@ loadrows = (height) => {
 //     goalSquare.id = 'square'
 // }
 
+// handles creating and plotting path and algorithm visualisation
 main = () => {
     let startCoord = document.getElementById('start').value.split(',')
     let endCoord = document.getElementById('end').value.split(',')
     let squares = document.querySelectorAll('#square')
-    let walls = document.getElementsByClassName('square wall')
+    let walls = document.querySelectorAll('.square.wall')
     let closedCoords = []
     for (let wall of walls) {
         let coord = [wall.getAttribute('x'), wall.getAttribute('y')]
         closedCoords.push(coord)
     } 500
     let path = run(startCoord, endCoord, closedCoords, WIDTH, HEIGHT)
-    setInterval(() => {
-        let activeNum = 0
-        searchSquares = document.getElementsByClassName('square search')
+    let drawPath = setInterval(() => {
+        searchSquares = document.querySelectorAll('.square.search')
         if (searchSquares.length == searchNum) {
+            let activeNum = 0
             for (let i = 0; i < path.length; i++) {
                 for (let square of squares) {
                     if (square.getAttribute('x') == path[i][0] && square.getAttribute('y') == path[i][1]) {
-                        if (!(square.className.includes('start')) && !(square.className.includes('goal'))) {
+                        if (!(square.classList.contains('start')) && !(square.classList.contains('goal'))) {
                             setTimeout(() => {
-                                square.className = 'square active'
-                            }, activeNum * 20)
+                                square.classList.remove('search')
+                                square.classList.add('active')
+                            }, activeNum * 10)
                             activeNum++
                         }
                     }
                 }
+                clearInterval(drawPath)
             }
         }
     }, 50)
 }
 
+// self explanatory
 loadPage = (width, height) => {
     loadCols(width)
     loadrows(height)
@@ -257,31 +295,52 @@ loadPage = (width, height) => {
 
 }
 
-setInterval(() => {
+// checks wheather a coordinate is entered then plots it
+checkInputs = setInterval(() => {
     let startCoord = document.getElementById('start').value.split(',')
     let endCoord = document.getElementById('end').value.split(',')
     let squares = document.getElementsByClassName('square')
-    let startSquare = document.getElementById('startSquare')
-    let goalSquare = document.getElementById('goalSquare')
     for (let square of squares) {
         if (square.getAttribute('x') == startCoord[0] && square.getAttribute('y') == startCoord[1] && square.id != 'startSquare') {
-            square.className += ' start'
-            if (startSquare != null) {
-                startSquare.className = 'square'
-                startSquare.id = 'square'
-            }
-            square.id = 'startSquare'
+            createStart(square)
         }
         if (square.getAttribute('x') == endCoord[0] && square.getAttribute('y') == endCoord[1] && square.id != 'goalSquare') {
-            square.className += ' goal'
-            if (goalSquare != null) {
-                goalSquare.className = 'square'
-                goalSquare.id = 'square'
-            }
-            square.id = 'goalSquare'
+            createEnd(square)
         }
     }
 }, 100)
+
+
+// handles drawing of walls
+let mouseHeld = false
+window.addEventListener('mousedown', () => {
+    mouseHeld = true
+})
+window.addEventListener('mouseup', () => {
+    mouseHeld = false
+})
+
+// handles plotting start
+let sDown = false
+window.addEventListener('keydown', (e) => {
+    if (e.key == 's') {
+        sDown = true
+    }
+})
+
+// handles plotting end
+let eDown = false
+window.addEventListener('keydown', (e) => {
+    if (e.key == 'e') {
+        eDown = true
+    }
+})
+
+// handles plotting
+window.addEventListener('keyup', (e) => {
+    sDown = false
+    eDown = false
+})
 
 window.onload = () => {
     loadPage(WIDTH, HEIGHT)
