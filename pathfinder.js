@@ -65,24 +65,23 @@ reconstruct_path = (current) => {
     return total_path
 }
 
-// aids in animation
-let searchNum = 0
 // A* algorithm that return a econstruction of the path
 A_Star = (start, goal, h) => {
+    let searchNum = 0
 
-    start = get_node(start)
-    goal = get_node(goal)
+    let startN = get_node(start)
+    let goalN = get_node(goal)
     // The set of discovered nodes that may need to be (re-)expanded.
     // Initially, only the start node is known.
-    let openSet = [start]
+    let openSet = [startN]
 
     // For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
-    start.gScore = 0
+    startN.gScore = 0
 
     // For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
     // how short a path from start to finish can be if it goes through n.
 
-    start.fScore = h(start, goal)
+    startN.fScore = h(startN, goalN)
     while (openSet.length != 0) {
         // This operation can occur in O(1) time if openSet is a min-heap or a priority queue
         // current = the node in openSet having the lowest fScore[] value
@@ -94,8 +93,11 @@ A_Star = (start, goal, h) => {
                 current = node
             }
         }
-        if (current == goal) {
-            return reconstruct_path(current)
+        if (current == goalN) {
+            return {
+                'path': reconstruct_path(current),
+                'searchNum': searchNum // aids in animation
+            }
         }
         openSet.splice(openSet.indexOf(current), 1)
         let neighbors = get_neighbors(current)
@@ -106,7 +108,7 @@ A_Star = (start, goal, h) => {
             if (tentative_gScore < neighbor.gScore) {
                 // This path to neighbor is better than any previous one. Record it!
                 // plots visualiser
-                let squares = document.getElementsByClassName('square')
+                let squares = document.querySelectorAll('.square')
                 for (let square of squares) {
                     if (square.getAttribute('x') == neighbor.x && square.getAttribute('y') == neighbor.y && square.id == 'square') {
                         // adds a nice animation via delaying the class change
@@ -118,7 +120,7 @@ A_Star = (start, goal, h) => {
                 }
                 neighbor.previous = current
                 neighbor.gScore = tentative_gScore
-                neighbor.fScore = neighbor.gScore + h(neighbor, goal)
+                neighbor.fScore = neighbor.gScore + h(neighbor, goalN)
                 if (!(neighbor in openSet)) {
                     openSet.push(neighbor)
                 }
@@ -126,7 +128,7 @@ A_Star = (start, goal, h) => {
         }
     }
     // Open set is empty but goal was never reached
-    return "failure"
+    return null
 }
 
 // creates nodes as a grid
@@ -203,6 +205,8 @@ run = (start, goal, closedCoords, width, height) => {
         get_node(coord).closed = true
     }
     let path = A_Star(start, goal, h)
+    // clears external stuff for replayability
+    nodes.splice(0, nodes.length)
     return path
 }
 
@@ -225,51 +229,68 @@ loadrows = (height) => {
     }
 }
 
-// reset = () => {
-//     let Squares = document.querySelectorAll('#square')
-//     for (let square of Squares) {
-//         square.className = 'square'
-//     }
-//     let startSquare = document.getElementById('startSquare')
-//     startSquare.className = 'square'
-//     startSquare.id = 'square'
-//     let goalSquare = document.getElementById('goalSquare')
-//     goalSquare.className = 'square'
-//     goalSquare.id = 'square'
-// }
+reset = () => {
+    let Squares = document.querySelectorAll('#square')
+    for (let square of Squares) {
+        square.className = 'square'
+    }
+    let startSquare = document.getElementById('startSquare')
+    if (startSquare != null) {
+        startSquare.className = 'square'
+        startSquare.id = 'square'
+    }
+    let goalSquare = document.getElementById('goalSquare')
+    if (goalSquare != null) {
+        goalSquare.className = 'square'
+        goalSquare.id = 'square'
+    }
+    let startInput = document.getElementById('start')
+    startInput.setAttribute('value', '')
+    let endInput = document.getElementById('end')
+    endInput.setAttribute('value', '')
+}
 
 // handles creating and plotting path and algorithm visualisation
 main = () => {
-    let startCoord = document.getElementById('start').value.split(',')
-    let endCoord = document.getElementById('end').value.split(',')
+    let startSquare = document.getElementById('startSquare')
+    let goalSquare = document.getElementById('goalSquare')
+    let startCoord = [startSquare.getAttribute('x'), startSquare.getAttribute('y')]
+    let endCoord = [goalSquare.getAttribute('x'), goalSquare.getAttribute('y')]
     let squares = document.querySelectorAll('#square')
     let walls = document.querySelectorAll('.square.wall')
     let closedCoords = []
     for (let wall of walls) {
         let coord = [wall.getAttribute('x'), wall.getAttribute('y')]
         closedCoords.push(coord)
-    } 500
-    let path = run(startCoord, endCoord, closedCoords, WIDTH, HEIGHT)
-    let drawPath = setInterval(() => {
-        searchSquares = document.querySelectorAll('.square.search')
-        if (searchSquares.length == searchNum) {
-            let activeNum = 0
-            for (let i = 0; i < path.length; i++) {
-                for (let square of squares) {
-                    if (square.getAttribute('x') == path[i][0] && square.getAttribute('y') == path[i][1]) {
-                        if (!(square.classList.contains('start')) && !(square.classList.contains('goal'))) {
-                            setTimeout(() => {
-                                square.classList.remove('search')
-                                square.classList.add('active')
-                            }, activeNum * 10)
-                            activeNum++
+    }
+    let Path = run(startCoord, endCoord, closedCoords, WIDTH, HEIGHT)
+    searchNum = Path.searchNum
+    path = Path.path
+    console.log(path)
+    if (path != null) {
+        let drawPath = setInterval(() => {
+            let searchSquares = document.querySelectorAll('.square.search')
+            if (searchSquares.length == searchNum) {
+                let activeNum = 0
+                for (let i = 0; i < path.length; i++) {
+                    for (let square of squares) {
+                        if (square.getAttribute('x') == path[i][0] && square.getAttribute('y') == path[i][1]) {
+                            if (!(square.classList.contains('start')) && !(square.classList.contains('goal'))) {
+                                setTimeout(() => {
+                                    square.classList.remove('search')
+                                    square.classList.add('active')
+                                }, activeNum * 10)
+                                activeNum++
+                            }
                         }
                     }
+                    clearInterval(drawPath)
+                    // resets for replayabilty
+                    searchNum = 0
                 }
-                clearInterval(drawPath)
             }
-        }
-    }, 50)
+        }, 50)
+    }
 }
 
 // self explanatory
@@ -289,8 +310,8 @@ loadPage = (width, height) => {
     })
     let resetBtn = document.getElementById('reset')
     resetBtn.addEventListener('click', () => {
-        location.reload()
-        // reset()
+        // location.reload()
+        reset()
     })
 
 }
